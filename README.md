@@ -69,13 +69,13 @@ You will need to clone this repository to `~/.cookiecutters/` (make the director
 
 ```
 cd path/to/.cookiecutters
-git clone git@github.com:associatedpress/cookiecutter-generic-project
+git clone git@github.com:associatedpress/cookiecutter-python-uv-project.git
 ```
 
-Then, use `datakit project`:
+Then, use `datakit project create`:
 
 ```
-datakit project create --template cookiecutter-generic-project
+datakit project create --template cookiecutter-python-uv-project
 ```
 
 If you'd like to avoid specifying the template each time, you can edit `~/.datakit/plugins/datakit-project/config.json` to use this template by default:
