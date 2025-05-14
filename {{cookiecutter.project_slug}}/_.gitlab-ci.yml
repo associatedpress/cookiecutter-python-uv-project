@@ -1,0 +1,73 @@
+variables:
+  IMAGE_TAG: "associatedpress.jfrog.io/docker-local/interact/tasks-data/{{ cookiecutter.project_slug }}"
+  VERSION_TAG: "v0.0"
+
+  # Other variables that will need to be set somewhere:
+  #
+  # *   Automatically set by GitLab CI:
+  #     *   CI_COMMIT_BRANCH
+  #         Name of the branch where, if we're acting on a push, the current
+  #         push took place
+  #     *   CI_DEFAULT_BRANCH
+  #         Name of the branch that GitLab considers the default for this
+  #         project (often either `master` or `main`)
+  #     *   CI_PROJECT_DIR
+  #         Path to a copy of this repository's current contents
+  # *   Group level:
+  #     *   IMAGE_PULL_SECRET_JFROG
+  #         Path to a Docker config file with credentials to pull from
+  #         associatedpress.jfrog.io
+  #     *   AWS_ACCESS_KEY_ID
+  #     *   AWS_SECRET_ACCESS_KEY
+  #         The usual AWS keys
+  # *   Project level:
+  # *   Pipeline level:
+  #     *   IS_SCHEDULED_RUN
+
+stages:
+  - build_image
+  - run_etl
+
+build_image:
+  stage: build_image
+  rules:
+    - if: >-
+        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH &&
+        $IS_SCHEDULED_RUN == null
+      when: always
+  image:
+    name: "gcr.io/kaniko-project/executor:v1.13.0-debug"
+    entrypoint: [""]
+  script:
+    - mkdir -p '/kaniko/.docker'
+    - cp "${IMAGE_PULL_SECRET_JFROG}" '/kaniko/.docker/config.json'
+    - |
+      '/kaniko/executor' \
+        --cache=true \
+        --cache-copy-layers=true \
+        --cache-run-layers=true \
+        --context "${CI_PROJECT_DIR}" \
+        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
+        --destination "${IMAGE_TAG}:${VERSION_TAG}"
+
+run_etl:
+  stage: run_etl
+  rules:
+    - if: >-
+        $IS_SCHEDULED_RUN != null && $RUN_ETL != null
+      when: always
+  image:
+    name: "${IMAGE_TAG}:${VERSION_TAG}"
+  script:
+    - aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+    - aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+
+    # make the data directories locally
+    - mkdir -p data/source
+    - mkdir -p data/processed
+
+    # run the data ingestion python scripts
+    - python3.9 etl/.....
+
+    # copy the data to the S3 buckets
+    - aws s3 cp --quiet --recursive data/processed s3://data.ap.org/projects/2025/{{ cookiecutter.project_slug }}/data/processed
