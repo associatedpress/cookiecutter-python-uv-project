@@ -10,5 +10,7 @@ analysis/*.ipynb
 analysis/archive/*.ipynb
 !analysis/notebook_templates/*.ipynb
 
+.sync_status/*
+
 scratch/*
 !scratch/.gitkeep
